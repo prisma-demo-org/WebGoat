@@ -16,27 +16,29 @@ jobs:
       - name: Install SAST Tool
         run: |
           pip install semgrep
-          sudo apt-get install jq -y  # Ensure jq is installed
+          sudo apt-get update && sudo apt-get install jq -y
 
       - name: Run Scan
         run: |
           # Run scan using automatic configuration and output results in SARIF format
-          semgrep scan . --sarif out --metrics=off
+          semgrep scan -q --sarif --config auto --metrics off . > output.sarif
 
       - name: Get Presigned URL
         id: get_presigned_url
         run: |
-          response=$(curl -s -X POST https://api-${{ secrets.CTX_DOMAIN }}/public_api/cas/v1/uploads/pre-signed-url \
+          response=$(curl -s -X POST "https://api-${{ secrets.CTX_DOMAIN }}/public_api/cas/v1/uploads/pre-signed-url" \
             -H "Authorization: ${{ secrets.API_TOKEN }}" \
             -H "x-xdr-auth-id: ${{ secrets.AUTH_ID }}" \
             -H "Content-Type: application/json" \
-            -d '{"filename": "output.sarif", "repositoryId": ${{ secrets.REPO_ID }}}')
+            -d '{"filename": "output.sarif", "repositoryId": "'"${{ secrets.REPO_ID }}"'"}')
           echo "API response: $response"
           # Parse out the URL (assuming the JSON response contains a field called "url")
           url=$(echo "$response" | jq -r '.url')
-          echo "url=$url" >> "$GITHUB_ENV"  # Correctly handle environment variable
+          echo "url=$url" >> "$GITHUB_ENV"
 
       - name: Upload SARIF file
         run: |
           echo "Uploading output.sarif to presigned URL..."
-          curl --fail --upload-file out/results_sarif.sarif "${{ env.url }}"
+          curl --fail --upload-file output.sarif \
+            -H "Content-Type: application/octet-stream" \
+            "${{ env.url }}"
