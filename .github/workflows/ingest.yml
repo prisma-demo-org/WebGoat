@@ -30,11 +30,11 @@ jobs:
             -H "Authorization: ${{ secrets.API_TOKEN }}" \
             -H "x-xdr-auth-id: ${{ secrets.AUTH_ID }}" \
             -H "Content-Type: application/json" \
-            -d '{"filename": "output.sarif", "repositoryId": "'"${{ secrets.REPO_ID }}"'"}')
+            -d '{"fileName": "output.sarif", "repositoryId": "'"${{ secrets.REPO_ID }}"'"}')
           echo "API response: $response"
-          # Parse out the URL (assuming the JSON response contains a field called "url")
           url=$(echo "$response" | jq -r '.url')
           echo "url=$url" >> "$GITHUB_ENV"
+
 
       - name: Upload SARIF file
         run: |
