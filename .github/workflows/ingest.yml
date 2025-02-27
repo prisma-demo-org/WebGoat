@@ -21,7 +21,7 @@ jobs:
       - name: Run Scan
         run: |
           # Run scan using automatic configuration and output results in SARIF format
-          semgrep scan . --sarif out
+          semgrep scan . --sarif out --metrics=off
 
       - name: Get Presigned URL
         id: get_presigned_url
