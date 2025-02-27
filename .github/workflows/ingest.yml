@@ -21,7 +21,7 @@ jobs:
       - name: Run Scan
         run: |
           # Run scan using automatic configuration and output results in SARIF format
-          semgrep --config=auto --sarif output.sarif
+          semgrep scan . --sarif out
 
       - name: Get Presigned URL
         id: get_presigned_url
@@ -39,4 +39,4 @@ jobs:
       - name: Upload SARIF file
         run: |
           echo "Uploading output.sarif to presigned URL..."
-          curl --fail --upload-file output.sarif "${{ env.url }}"
+          curl --fail --upload-file out/results_sarif.sarif "${{ env.url }}"
