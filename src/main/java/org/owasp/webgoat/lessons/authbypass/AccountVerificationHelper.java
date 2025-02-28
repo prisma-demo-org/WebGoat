@@ -7,6 +7,7 @@ package org.owasp.webgoat.lessons.authbypass;
 import java.util.HashMap;
 import java.util.Map;
 
+// Adding a comment
 /** Created by appsec on 7/18/17. */
 public class AccountVerificationHelper {
 
