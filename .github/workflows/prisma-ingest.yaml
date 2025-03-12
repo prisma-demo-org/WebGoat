@@ -16,7 +16,13 @@ jobs:
       - name: Install SAST Tool
         run: |
           pip install semgrep
-          sudo apt-get update && sudo apt-get install -y jq
+          sudo apt-get update && sudo apt-get install jq -y
+
+      - name: Diagnostics
+        run: |
+          echo "Prisma URL: ${{ secrets.PRISMA_URL }}"
+          echo "Prisma Username: ${{ secrets.PRISMA_USERNAME }}"
+          echo "Prisma Repository ID: ${{ secrets.PRISMA_REPO_ID }}"
 
       - name: Run Scan
         run: |
@@ -38,20 +44,26 @@ jobs:
                                    "password": "'"${PRISMA_PASSWORD}"'",
                                    "username": "'"${PRISMA_USERNAME}"'"
                                  }')
-  
+
+          echo "AUTH_RESPONSE: $AUTH_RESPONSE"
+
           TOKEN=$(echo $AUTH_RESPONSE | jq -r '.token')
-  
+          MESSAGE=$(echo $AUTH_RESPONSE | jq -r '.message')
+
+          echo "Token: $TOKEN"
+          echo "Message: $MESSAGE"
+
           if [ -z "$TOKEN" ]; then
             echo "Error: Failed to retrieve token"
             exit 1
           fi
-  
+
           UPLOAD_RESPONSE=$(curl -v -X POST "$PRISMA_URL/code/api/v2/uploads/uploadSarifFile" \
                           -H "Authorization: $TOKEN" \
                           -F "file=@./output.sarif;type=application/octet-stream" \
                           -F "repositoryId=$PRISMA_REPO_ID" \
                           -F "fileName=output.sarif")
-  
+
           echo "Upload response: $UPLOAD_RESPONSE"
           
           if ! echo "$UPLOAD_RESPONSE" | grep -q '"success":true'; then
