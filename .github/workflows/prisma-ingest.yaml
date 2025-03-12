@@ -1,0 +1,55 @@
+name: Prisma Cloud SARIF Upload
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      
+      - name: Install SAST Tool
+        run: |
+          pip install semgrep
+          sudo apt-get update && sudo apt-get install jq -y
+
+      - name: Run Scan
+        run: |
+          # Run scan using automatic configuration and output results in SARIF format
+          semgrep scan -q --sarif --config auto . > output.sarif
+
+      - name: Upload to Prisma Cloud
+        run: |
+          # Logging in to Prisma Cloud and obtaining JWT token
+          AUTH_RESPONSE=$(curl -L '${{ secrets.PRISMA_URL }}/login' \
+                             -H 'Content-Type: application/json; charset=UTF-8' \
+                             -H 'Accept: application/json; charset=UTF-8' \
+                             -d '{
+                                   "password": "'"${{ secrets.PRISMA_PASSWORD }}"'",
+                                   "username": "'"${{ secrets.PRISMA_USERNAME }}"'"
+                                 }')
+  
+          TOKEN=$(echo $AUTH_RESPONSE | jq -r '.token')
+  
+          if [ -z "$TOKEN" ]; then
+            echo "Error: Failed to retrieve token"
+            exit 1
+          fi
+  
+          UPLOAD_RESPONSE=$(curl -v -X POST "${{ secrets.PRISMA_URL }}/code/api/v2/uploads/uploadSarifFile" \
+                          -H "Authorization: $TOKEN" \
+                          -F "file=@./output.sarif;type=application/octet-stream" \
+                          -F "repositoryId=${{ secrets.PRISMA_REPO_ID }}" \
+                          -F "fileName=output.sarif")
+  
+          echo "Upload response: $UPLOAD_RESPONSE"
+          
+          if ! echo "$UPLOAD_RESPONSE" | grep -q '"success":true'; then
+            echo "Error: Failed to upload SARIF file"
+            exit 1
+          fi
